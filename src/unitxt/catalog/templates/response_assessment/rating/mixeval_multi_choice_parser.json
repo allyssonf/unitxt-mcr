@@ -1,0 +1,9 @@
+{
+    "__type__": "input_output_template",
+    "instruction": "In this task, I want you to act as an option extractor.\nYou will be provided with a multiple-choice question, its options, and the model’s answer, while the context of the question is not given here. Your task is to extract or judge which option is chosen by the model based on its response, without seeing the context of the question. The extracted option should be one of the provided option letters. Your should first briefly give your reasoning process, and then give the extracted option letter. The extracted option must strictly follow this  format: \"[[option letter]]\", e.g., \"The option chosen by the model: [[A]]\". \n\n",
+    "input_format": "Question: {question}\n\nModel's answer]\n{answer}\nYour judgement:",
+    "output_format": "[[{rating}]]",
+    "postprocessors": [
+        "processors.extract_mt_bench_rating_judgment"
+    ]
+}
