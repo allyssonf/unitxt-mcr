@@ -2,58 +2,109 @@ import logging
 from interfaces.evaluation import Evaluation
 
 from unitxt.api import evaluate, load_dataset
-from unitxt.inference import HFPipelineBasedInferenceEngine
 
 logger = logging.getLogger(__name__)
 
 class Mmlu(Evaluation):
-    model_name: str | None = None
-    max_tokens: int = 32
-    max_instances: int | None = None
-
-    def __init__(self, model_name: str, max_tokens: int | None, max_instances: int | None):
-        if max_tokens:
-            self.max_tokens = max_tokens
-
-        if max_instances:
-            self.max_instances = max_instances
-
-        self.model_name = model_name
+    def __init__(self, model_name, args):
+        return super().__init__(model_name, args)
 
     def evaluate(self):
-        # For now, just abstract algebra
         subtasks = [
-            "abstract_algebra"
+            "abstract_algebra",
+            "anatomy",
+            "astronomy",
+            "business_ethics",
+            "clinical_knowledge",
+            "college_biology",
+            "college_chemistry",
+            "college_computer_science",
+            "college_mathematics",
+            "college_medicine",
+            "college_physics",
+            "computer_security",
+            "conceptual_physics",
+            "econometrics",
+            "electrical_engineering",
+            "elementary_mathematics",
+            "formal_logic",
+            "global_facts",
+            "high_school_biology",
+            "high_school_chemistry",
+            "high_school_computer_science",
+            "high_school_european_history",
+            "high_school_geography",
+            "high_school_government_and_politics",
+            "high_school_macroeconomics",
+            "high_school_mathematics",
+            "high_school_microeconomics",
+            "high_school_physics",
+            "high_school_psychology",
+            "high_school_statistics",
+            "high_school_us_history",
+            "high_school_world_history",
+            "human_aging",
+            "human_sexuality",
+            "international_law",
+            "jurisprudence",
+            "logical_fallacies",
+            "machine_learning",
+            "management",
+            "marketing",
+            "medical_genetics",
+            "miscellaneous",
+            "moral_disputes",
+            "moral_scenarios",
+            "nutrition",
+            "philosophy",
+            "prehistory",
+            "professional_accounting",
+            "professional_law",
+            "professional_medicine",
+            "professional_psychology",
+            "public_relations",
+            "security_studies",
+            "sociology",
+            "us_foreign_policy",
+            "virology",
+            "world_religions",
         ]
 
-        for idx, sub in enumerate(subtasks):
-            evaluation = f"card=cards.mmlu.{sub}, template_card_index=0, metrics=[metrics.llm_as_judge.rating.llama_3_70b_instruct_ibm_genai_template_mixeval_multi_choice_parser]"
+        for sub in subtasks:
+            start_time = self.time_start()
+            prediction_file = f'mmlu_{sub}.pkl'
+            result_file = f'mmlu_{sub}.json'
 
-            if self.max_instances:
-                evaluation += f", max_test_instances={self.max_instances}"
+            if not self.result_file_exists(result_file):
+                evaluation = f"card=cards.mmlu.{sub}"
+                evaluation += ", template_card_index=0, metrics=[metrics.accuracy, "
+                evaluation += "metrics.llm_as_judge.rating.llama_3_70b_instruct_ibm_genai_template_mixeval_multi_choice_parser]"
 
-            logger.info(">>>>>> EVALUATING <<<<<<")
-            logger.info("\n")
-            logger.info(evaluation)
-            logger.info("\n")
+                if self.max_instances:
+                    evaluation += f", max_test_instances={self.max_instances}"
 
-            dataset = load_dataset(evaluation)
+                logger.info(">>>>>> EVALUATING <<<<<<")
+                logger.info("\n")
+                logger.info(evaluation)
+                logger.info("\n")
 
-            test_dataset = dataset["test"]
+                dataset = load_dataset(evaluation)
 
-            inference_model = HFPipelineBasedInferenceEngine(
-                model_name=self.model_name, max_new_tokens=self.max_tokens
-            )
+                test_dataset = dataset["test"]
 
-            predictions = inference_model.infer(test_dataset)
+                inference_model = self.get_inference_model()
 
-            model_label=self.model_name.split("/")[1].replace("-", "_").replace(".", ",").lower()
+                predictions = inference_model.infer(test_dataset)
 
-            self.save_predictions(f'predictions/{model_label}_mmlu_{sub}.pkl', predictions)
+                self.save_predictions(prediction_file, predictions)
 
-            evaluated_dataset = evaluate(predictions=predictions, data=test_dataset)
+                evaluated_dataset = evaluate(predictions=predictions, data=test_dataset)
 
-            self.save_results(f'results/{model_label}_mmlu_{sub}.json', evaluated_dataset)
+                self.save_results(result_file, evaluated_dataset)
+            else:
+                logger.info(f'Subtask {sub} already processed!')
+
+            self.time_end(start_time)
 
         return
 

@@ -13,8 +13,8 @@ add_to_catalog(
             " letters. Your should first briefly give your reasoning process, and then give" 
             " the extracted option letter. The extracted option must strictly follow this "
             ' format: "[[option letter]]", e.g., "The option chosen by the model: [[A]]". \n\n',
-        input_format="Question: {question}\n\n"
-        "Model's answer]\n{answer}\n"
+        input_format="Question: {question}\n"
+        "Model's answer\n{answer}\n"
         "Your judgement:",
         output_format="[[{rating}]]",
         postprocessors=[

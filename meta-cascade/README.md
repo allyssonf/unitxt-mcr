@@ -2,7 +2,7 @@
 
 ## Installation
 
-In unitxt root folder, run the following commands
+In unitxt-mcr root folder, run the following commands
 
 > pip install -e .
 
@@ -28,9 +28,14 @@ Please set `EVAL_HOME` environment variable to the folder where results will be 
  ┃ ┗ 📜1721235212_mmlu_abstract_algebra_result.json
 ```
 
-Then run the following command (unitxt root folder):
+Then run the following command (unitxt-mcr root folder):
 
->  EVAL_HOME=<DATA_FOLDER> GENAI_KEY=<YOUR_KEY> HF_TOKEN=<HF_TOKEN> HF_HOME=<HF_HOME> python meta-cascade/main.py  
+>  CUDA_VISIBLE_DEVICES=<GPU_LIST> EVAL_HOME=<DATA_FOLDER> GENAI_KEY=<YOUR_KEY> HF_TOKEN=<HF_TOKEN> HF_HOME=<HF_HOME> python meta-cascade/main.py  
+
+In background:
+
+> CUDA_VISIBLE_DEVICES=<GPU_LIST> EVAL_HOME=<DATA_FOLDER> GENAI_KEY=<YOUR_KEY> HF_TOKEN=<HF_TOKEN> HF_HOME=<HF_HOME> nohup python meta-cascade/main.py &
+
 
 ## Others
 
