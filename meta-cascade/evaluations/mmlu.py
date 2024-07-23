@@ -1,5 +1,6 @@
 import logging
 from interfaces.evaluation import Evaluation
+from interfaces.models import ModelLoader
 
 from unitxt.api import evaluate, load_dataset
 
@@ -70,6 +71,8 @@ class Mmlu(Evaluation):
             "world_religions",
         ]
 
+        model_loader = ModelLoader()
+
         for sub in subtasks:
             start_time = self.time_start()
             prediction_file = f'mmlu_{sub}.pkl'
@@ -92,7 +95,9 @@ class Mmlu(Evaluation):
 
                 test_dataset = dataset["test"]
 
-                inference_model = self.get_inference_model()
+                name, tokens, watsonx = self.get_model_parameters()
+
+                inference_model = model_loader.get_inference_model(model_name=name, watsonx=watsonx, max_tokens=tokens)
 
                 predictions = inference_model.infer(test_dataset)
 

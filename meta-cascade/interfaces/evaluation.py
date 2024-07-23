@@ -38,21 +38,8 @@ class Evaluation(ABC):
 
         create_path(self.model_label)
 
-    def get_inference_model(self) -> HFPipelineBasedInferenceEngine | IbmGenAiInferenceEngine:
-        inference_model: HFPipelineBasedInferenceEngine | IbmGenAiInferenceEngine | None = None
-
-        if not self.watsonx_model:
-            inference_model = HFPipelineBasedInferenceEngine(
-                model_name=self.model_name, max_new_tokens=self.max_tokens
-            )
-        else:
-            gen_params = IbmGenAiInferenceEngineParams(max_new_tokens=32)
-
-            inference_model = IbmGenAiInferenceEngine(
-                model_name=self.model_name, parameters=gen_params
-            )
-
-        return inference_model
+    def get_model_parameters(self) -> tuple[str, int, bool]:
+        return self.model_name, self.max_tokens, self.watsonx_model
 
     @abstractmethod
     def evaluate(self) -> None:
