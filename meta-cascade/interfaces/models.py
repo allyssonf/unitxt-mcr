@@ -1,3 +1,6 @@
+import gc
+import torch
+
 from unitxt.inference import HFPipelineBasedInferenceEngine, IbmGenAiInferenceEngine, IbmGenAiInferenceEngineParams
 
 class ModelLoader():
@@ -26,15 +29,9 @@ class ModelLoader():
         return self.inference_model
     
     def new_inference_model(self, model_name: str, watsonx: bool, max_tokens: int = 32) -> HFPipelineBasedInferenceEngine | IbmGenAiInferenceEngine:
-        if watsonx:
-            self.inference_model = HFPipelineBasedInferenceEngine(
-                model_name=model_name, max_new_tokens=max_tokens
-            )
-        else:
-            gen_params = IbmGenAiInferenceEngineParams(max_new_tokens=32)
+        del self.inference_model
 
-            self.inference_model = IbmGenAiInferenceEngine(
-                model_name=model_name, parameters=gen_params
-            )
+        gc.collect()
+        torch.cuda.empty_cache()
 
-        return self.inference_model
+        return self.get_inference_model(model_name, watsonx, max_tokens)

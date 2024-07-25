@@ -42,6 +42,13 @@ class Evaluation(ABC):
         return self.model_name, self.max_tokens, self.watsonx_model
 
     @abstractmethod
+    def get_evaluation_name(self) -> str:
+        """
+        Return current evaluation name.
+        """
+        pass
+
+    @abstractmethod
     def evaluate(self) -> None:
         """
         Implement the current model's evaluation.

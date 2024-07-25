@@ -1,4 +1,8 @@
 import logging
+import gc
+import torch
+import os
+
 from interfaces.evaluation import Evaluation
 from interfaces.models import ModelLoader
 
@@ -8,7 +12,10 @@ logger = logging.getLogger(__name__)
 
 class Mmlu(Evaluation):
     def __init__(self, model_name, args):
-        return super().__init__(model_name, args)
+        super().__init__(model_name, args)
+
+    def get_evaluation_name(self) -> str:
+        return 'MMLU'
 
     def evaluate(self):
         subtasks = [
@@ -80,8 +87,7 @@ class Mmlu(Evaluation):
 
             if not self.result_file_exists(result_file):
                 evaluation = f"card=cards.mmlu.{sub}"
-                evaluation += ", template_card_index=0, metrics=[metrics.accuracy, "
-                evaluation += "metrics.llm_as_judge.rating.llama_3_70b_instruct_ibm_genai_template_mixeval_multi_choice_parser]"
+                evaluation += f", template_card_index=0, metrics=[{os.getenv('EVAL_METRICS')}]"
 
                 if self.max_instances:
                     evaluation += f", max_test_instances={self.max_instances}"
@@ -106,6 +112,10 @@ class Mmlu(Evaluation):
                 evaluated_dataset = evaluate(predictions=predictions, data=test_dataset)
 
                 self.save_results(result_file, evaluated_dataset)
+
+                # Clear cache
+                gc.collect()
+                torch.cuda.empty_cache()
             else:
                 logger.info(f'Subtask {sub} already processed!')
 

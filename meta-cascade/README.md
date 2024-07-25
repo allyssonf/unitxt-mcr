@@ -6,6 +6,8 @@ In unitxt-mcr root folder, run the following commands
 
 > pip install -e .
 
+> pip install ibm-generative-ai
+
 > pip install setuptools
 
 > pip install torch
@@ -13,6 +15,13 @@ In unitxt-mcr root folder, run the following commands
 > pip install transformers
 
 > pip install accelerate
+
+> pip install flash-attention
+
+> pip install python-dotenv
+
+### For some microsoft models:
+> pip install flash-attn --no-build-isolation
 
 ## Running evaluation
 

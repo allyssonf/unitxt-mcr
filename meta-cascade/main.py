@@ -1,13 +1,14 @@
 import logging
 import argparse
 import time
-import datetime
 import os
+import gc
 
 from evaluations.mmlu import Mmlu
 from interfaces.evaluation import Evaluation
 from utils.files import create_path
 from dotenv import load_dotenv
+from utils.airtable import AirTableLogger, Result
 
 load_dotenv(dotenv_path=f'{os.getcwd()}/meta-cascade')
 
@@ -23,20 +24,25 @@ def main(args):
     for model_name in models_list:
         new_evaluation = Mmlu(model_name, args)
 
+        if not issubclass(type(new_evaluation), Evaluation):
+            raise Exception("Subclass of Evaluation interface expected!")
+
+        airtable_logger = AirTableLogger()
+
+        airtable_logger.log_start(model_name, new_evaluation.get_evaluation_name())
+
         pretty_name = new_evaluation.get_pretty_name()
 
         create_path(f'{os.getcwd()}/logs', ignore_home=True)
 
+        log_filename = f"./logs/{int(time.time())}_{pretty_name}_execution.log"
+
         logging.basicConfig(
-            filename=f"./logs/{int(time.time())}_{pretty_name}_execution.log", level=logging.INFO
+            filename=log_filename, level=logging.INFO
         )
 
-        if not issubclass(type(new_evaluation), Evaluation):
-            raise Exception("Subclass of Evaluation interface expected!")
-
-        start_time = time.perf_counter()
-
-        logger.info(f"[MODEL START] ({pretty_name}): {start_time}")
+        evaluation_result: Result = Result.success
+        evaluation_message: str = ''
 
         try:
             # Exceptions might arise while processing model's evaluation
@@ -44,14 +50,16 @@ def main(args):
         except Exception as error:
             logger.info(error)
             logger.info(f'Error evaluating model {new_evaluation.get_pretty_name()}')
+            evaluation_result = Result.failure
+            evaluation_message = str(error)
+            evaluation_message += f'\nMore info: {log_filename}'
 
-        end_time=time.perf_counter()
+        airtable_logger.log_end(evaluation_result, evaluation_message)
 
-        logger.info(f"[MODEL END] ({pretty_name}): {end_time}")
+        del new_evaluation
+        del airtable_logger
 
-        execution_time=str(datetime.timedelta(seconds=end_time-start_time))
-
-        logger.info(f"[EXECUTION TIME] ({pretty_name}): {execution_time}")
+        gc.collect()
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
