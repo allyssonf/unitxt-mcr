@@ -41,8 +41,7 @@ inference_model = HFPipelineBasedInferenceEngine(
 #
 # platform = 'ibm_gen_ai'
 # model_name = 'meta-llama/llama-3-70b-instruct'
-# gen_params = IbmGenAiInferenceEngineParams(max_new_tokens=32)
-# inference_model = IbmGenAiInferenceEngine(model_name="meta-llama/llama-3-70b-instruct", parameters=gen_params)
+# inference_model = IbmGenAiInferenceEngine(model_name="meta-llama/llama-3-70b-instruct", max_new_tokens=32)
 
 
 # Third, We define the metric as LLM as a judge, with the desired platform and model.
@@ -57,8 +56,8 @@ llm_judge_metric = LLMAsJudge(
 card = TaskCard(
     loader=LoadFromDictionary(data=data),
     task=Task(
-        inputs={"question": "str"},
-        outputs={"answer": "str"},
+        input_fields={"question": "str"},
+        reference_fields={"answer": "str"},
         prediction_type="str",
         metrics=[llm_judge_metric],
     ),
