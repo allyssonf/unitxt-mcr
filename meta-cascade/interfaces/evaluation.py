@@ -1,11 +1,12 @@
 import logging
 import time
 import datetime
+import pickle
+import os
 
 from abc import ABC, abstractmethod
 from typing import Any, Dict, List
 from utils.files import save_json_file, save_pickle, create_path, file_exists
-from unitxt.inference import HFPipelineBasedInferenceEngine, IbmGenAiInferenceEngine, IbmGenAiInferenceEngineParams
 
 logger = logging.getLogger(__name__)
 
@@ -15,6 +16,8 @@ class Evaluation(ABC):
     max_tokens: int = 32
     max_instances: int | None = None
     watsonx_model: bool = False
+    results_folder: str = "results"
+    predictions_folder: str = "predictions"
 
     def __init__(self, model_name, args):
         if not args:
@@ -58,8 +61,17 @@ class Evaluation(ABC):
     def get_pretty_name(self) -> str:
         return f"{type(self).__name__}-{self.model_label}".lower()
 
+    def get_results_path(self) -> str:
+        return f'{self.model_label}/{self.results_folder}'
+
+    def get_predictions_path(self) -> str:
+        return f'{self.model_label}/{self.predictions_folder}'
+
     def result_file_exists(self, filename: str) -> bool:
-        return file_exists(f'{self.model_label}/results/{filename}')
+        return file_exists(f'{self.get_results_path()}/{filename}')
+    
+    def prediction_file_exists(self, filename: str) -> bool:
+        return file_exists(f'{self.get_predictions_path()}/{filename}')
 
     def save_predictions(self, filename: str, data: Dict[str, Any] | List[Dict[str, Any]] | Any) -> None:
         """
@@ -67,7 +79,13 @@ class Evaluation(ABC):
 
         No need to worry about file path, just the file name.
         """
-        save_pickle(f'{self.model_label}/predictions/{filename}', data)
+        save_pickle(f'{self.get_predictions_path()}/{filename}', data)
+    
+    def load_predictions(self, filename: str) -> Any:
+        pickle_file = open(f'{os.getenv("EVAL_HOME")}/{self.get_predictions_path()}/{filename}', 'rb')
+        data = pickle.load(pickle_file)
+        pickle_file.close()
+        return data
 
     def save_results(self, filename: str, data: Dict[str, Any] | List[Dict[str, Any]] | Any) -> None:
         """
@@ -75,7 +93,7 @@ class Evaluation(ABC):
 
         No need to worry about file path, just the file name.
         """
-        save_json_file(f'{self.model_label}/results/{filename}', data)
+        save_json_file(f'{self.get_results_path()}/{filename}', data)
 
     def time_start(self) -> float:
         """

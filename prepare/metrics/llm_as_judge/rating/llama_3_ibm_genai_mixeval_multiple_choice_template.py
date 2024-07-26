@@ -18,7 +18,7 @@ metric_label = f"{model_label}_template_{template_label}"
 metric = LLMAsJudge(
     inference_model=inference_model,
     template=template,
-    task="rating.single_turn",
+    task="rating.single_turn_with_reference",
     format=format,
     main_score=metric_label,
 )

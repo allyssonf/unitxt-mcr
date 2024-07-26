@@ -9,7 +9,7 @@
         }
     },
     "template": "templates.response_assessment.rating.mixeval_multi_choice_parser",
-    "task": "rating.single_turn",
+    "task": "rating.single_turn_with_reference",
     "format": "formats.llama3_instruct",
     "main_score": "llama_3_70b_instruct_ibm_genai_template_mixeval_multi_choice_parser"
 }

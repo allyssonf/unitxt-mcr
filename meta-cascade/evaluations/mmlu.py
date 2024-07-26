@@ -80,7 +80,7 @@ class Mmlu(Evaluation):
 
         model_loader = ModelLoader()
 
-        for sub in subtasks:
+        for sub in subtasks[:1]:
             start_time = self.time_start()
             prediction_file = f'mmlu_{sub}.pkl'
             result_file = f'mmlu_{sub}.json'
@@ -105,7 +105,13 @@ class Mmlu(Evaluation):
 
                 inference_model = model_loader.get_inference_model(model_name=name, watsonx=watsonx, max_tokens=tokens)
 
-                predictions = inference_model.infer(test_dataset)
+                predictions = []
+
+                if not self.prediction_file_exists(prediction_file):
+                    predictions = inference_model.infer(test_dataset)
+                else:
+                    logger.info(f'Loading predictions from file: {prediction_file}')
+                    predictions = self.load_predictions(prediction_file)
 
                 self.save_predictions(prediction_file, predictions)
 

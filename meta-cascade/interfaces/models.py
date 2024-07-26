@@ -1,7 +1,7 @@
 import gc
 import torch
 
-from unitxt.inference import HFPipelineBasedInferenceEngine, IbmGenAiInferenceEngine, IbmGenAiInferenceEngineParams
+from unitxt.inference import HFPipelineBasedInferenceEngine, IbmGenAiInferenceEngine
 
 class ModelLoader():
     _instance: None = None
@@ -20,10 +20,8 @@ class ModelLoader():
                     model_name=model_name, max_new_tokens=max_tokens
                 )
             else:
-                gen_params = IbmGenAiInferenceEngineParams(max_new_tokens=32)
-
                 self.inference_model = IbmGenAiInferenceEngine(
-                    model_name=model_name, parameters=gen_params
+                    model_name=model_name, max_new_tokens=32
                 )
 
         return self.inference_model
