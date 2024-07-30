@@ -9,6 +9,7 @@ from interfaces.evaluation import Evaluation
 from utils.files import create_path
 from dotenv import load_dotenv
 from utils.airtable import AirTableLogger, Result
+from utils.result_checker import ResultsChecker
 
 load_dotenv(dotenv_path=f'{os.getcwd()}/meta-cascade')
 
@@ -42,11 +43,21 @@ def main(args):
         )
 
         evaluation_result: Result = Result.success
-        evaluation_message: str = ''
+        result_path = new_evaluation.get_results_path()
+        evaluation_message: str = f'Results saved to: {result_path}\n'
 
         try:
             # Exceptions might arise while processing model's evaluation
             new_evaluation.evaluate()
+
+            try: 
+                results_checker: ResultsChecker = ResultsChecker()
+                evaluation_message += results_checker.check_results(result_path)
+            except Exception as error:
+                # Avoid set evaluation as failed.
+                logger.info(error)
+                evaluation_message += 'Error generating results file.'
+
         except Exception as error:
             logger.info(error)
             logger.info(f'Error evaluating model {new_evaluation.get_pretty_name()}')

@@ -80,7 +80,7 @@ class Mmlu(Evaluation):
 
         model_loader = ModelLoader()
 
-        for sub in subtasks[:1]:
+        for sub in subtasks:
             start_time = self.time_start()
             prediction_file = f'mmlu_{sub}.pkl'
             result_file = f'mmlu_{sub}.json'

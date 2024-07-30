@@ -1,7 +1,6 @@
 from unitxt import add_to_catalog
 from unitxt.inference import (
     IbmGenAiInferenceEngine,
-    IbmGenAiInferenceEngineParams,
 )
 from unitxt.llm_as_judge import LLMAsJudge
 
@@ -9,8 +8,7 @@ model = "meta-llama/llama-3-70b-instruct"
 format = "formats.llama3_instruct"
 template = "templates.response_assessment.rating.mixeval_multi_choice_parser"
 
-gen_params = IbmGenAiInferenceEngineParams(max_new_tokens=252)
-inference_model = IbmGenAiInferenceEngine(model_name=model, parameters=gen_params)
+inference_model = IbmGenAiInferenceEngine(model_name=model, max_new_tokens=252)
 model_label = model.split("/")[1].replace("-", "_").replace(".", ",").lower()
 model_label = f"{model_label}_ibm_genai"
 template_label = template.split(".")[-1]
@@ -21,6 +19,7 @@ metric = LLMAsJudge(
     task="rating.single_turn_with_reference",
     format=format,
     main_score=metric_label,
+    prediction_type="str",
 )
 
 add_to_catalog(
