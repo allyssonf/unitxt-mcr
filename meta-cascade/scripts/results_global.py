@@ -48,6 +48,7 @@ class OutCast(BaseModel):
 
 class Datasets(BaseModel):
     dataset_name: str
+    discrepancies_number: int
     outcasts: list[OutCast]
 
 
@@ -79,6 +80,9 @@ class ResultsChecker:
             )
 
             discrepancy = value.global_.accuracy != value.global_.llama_3_70b_instruct_parser
+
+            if discrepancy:
+                print(f'values: GA -> {value.global_.accuracy} | GJ -> {value.global_.llama_3_70b_instruct_parser}')
         else:
             return None
 
@@ -89,6 +93,7 @@ class ResultsChecker:
                 )
 
                 if value.instance.accuracy != value.instance.llama_3_70b_instruct_parser:
+                    print(f'scores: IA -> {value.instance.accuracy} | IJ -> {value.instance.llama_3_70b_instruct_parser}')
                     outcasts.append(
                         OutCast(
                             accuracy=value.instance.accuracy,
@@ -121,14 +126,15 @@ class ResultsChecker:
             for name in files:
                 json_file = open(os.path.join(path, name))
                 data = json.load(json_file)
+                print(f'Looking for discrepancies in {name}')
                 result = self.__calculate_outcasts(data)
 
                 if result:
                     overall_result.results.append(
                         Datasets(
                             dataset_name=name,
+                            discrepancies_number=len(result),
                             outcasts=result
-
                         )
                     )
     
@@ -157,16 +163,20 @@ class ResultsChecker:
 
 results_checker: ResultsChecker = ResultsChecker()
 
+# models_list = [
+#     'granite_13b_chat_v2',
+#     'granite_34b_code_instruct',
+#     'llama_3_405b_instruct',
+#     'llama_3_70b_instruct',
+#     'llama_3_8b_instruct',
+#     'mistral_large',
+#     'mixtral_8x7b_instruct_v01'
+# ]
+
 models_list = [
-    'granite_13b_chat_v2',
-    'granite_34b_code_instruct',
-    'llama_3_405b_instruct',
-    'llama_3_70b_instruct',
-    'llama_3_8b_instruct',
-    'mistral_large',
-    'mixtral_8x7b_instruct_v01'
+    'granite_34b_code_instruct'
 ]
 
 for model in models_list:
-    results_path = f'/data/home/allysson/Data/1_mmlu_new/{model}/results'
-    results_checker.check_results(results_path)
+    results_path = '<PATH_TO_RESULTS_HERE>'
+    results_checker.check_results(results_path, save_json=True)

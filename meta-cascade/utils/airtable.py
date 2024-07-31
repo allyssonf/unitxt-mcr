@@ -66,7 +66,11 @@ class AirTableLogger:
 
         eval_model = self.get_eval_model(model_name)
 
+        assert eval_model is not None
+
         eval_dataset = self.get_eval_dataset(dataset_name)
+
+        assert eval_dataset is not None
 
         # Create Log Record 
         new_log = DGLogs(

@@ -49,14 +49,8 @@ def main(args):
         try:
             # Exceptions might arise while processing model's evaluation
             new_evaluation.evaluate()
-
-            try: 
-                results_checker: ResultsChecker = ResultsChecker()
-                evaluation_message += results_checker.check_results(result_path)
-            except Exception as error:
-                # Avoid set evaluation as failed.
-                logger.info(error)
-                evaluation_message += 'Error generating results file.'
+            results_checker: ResultsChecker = ResultsChecker()
+            evaluation_message += results_checker.check_results(model_name, result_path)
 
         except Exception as error:
             logger.info(error)

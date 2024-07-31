@@ -1,9 +1,12 @@
 import json
+import logging
 import os
+
 from pydantic import BaseModel, Field, ConfigDict
 from .files import handle_non_serializable
 from typing import Any
 
+logger = logging.getLogger(__name__)
 
 class GlobalScore(BaseModel):
     accuracy: float
@@ -61,31 +64,45 @@ class ResultsChecker:
     def __init__(self) -> None:
         pass
 
-    def calculate_outcasts(self, data: Any) -> list[OutCast] | None:
+    def __calculate_outcasts(self, data: Any) -> list[OutCast] | None:
         outcasts: list[OutCast] = []
 
-        for instance in data:
+        discrepancy: bool = False
+
+        if len(data) > 0:
             value: Score = Score(
-                **instance['score']
+                **data[0]['score']
             )
 
-            if value.instance.accuracy != value.instance.llama_3_70b_instruct_parser:
-                outcasts.append(
-                    OutCast(
-                        accuracy=value.instance.accuracy,
-                        llmaj=value.instance.llama_3_70b_instruct_parser,
-                        reference=instance['processed_references'][0],
-                        jugde_prompt=value.instance.judge_raw_input,
-                        model_answer=instance['processed_prediction'],
-                        judge_answer=value.instance.judge_raw_output
-                    )
+            discrepancy = value.global_.accuracy != value.global_.llama_3_70b_instruct_parser
+        else:
+            return None
+
+        if discrepancy:
+            for instance in data:
+                value: Score = Score(
+                    **instance['score']
                 )
+
+                if value.instance.accuracy != value.instance.llama_3_70b_instruct_parser:
+                    outcasts.append(
+                        OutCast(
+                            accuracy=value.instance.accuracy,
+                            llmaj=value.instance.llama_3_70b_instruct_parser,
+                            reference=instance['processed_references'][0],
+                            jugde_prompt=value.instance.judge_raw_input,
+                            model_answer=instance['processed_prediction'],
+                            judge_answer=value.instance.judge_raw_output
+                        )
+                    )
 
         return outcasts if len(outcasts) > 0 else None
 
-    def check_results(self, results_folder_path: str) -> str:
+    def check_results(self, model_name: str, results_folder_path: str) -> str:
+        logger.info('Running LLMaJ results check.')
+
         overall_result: Results = Results(
-            model_name='',
+            model_name=model_name,
             results=[]
         )
 
@@ -95,24 +112,30 @@ class ResultsChecker:
             # Path structure should be in this format:
             # /path/to/model-name/results
             model_result_path = str(path)
-            model_name = model_result_path.split('/')[-2]
-            overall_result.model_name = model_name
 
             for name in files:
                 json_file = open(os.path.join(path, name))
                 data = json.load(json_file)
-                result = self.calculate_outcasts(data)
+                result = self.__calculate_outcasts(data)
 
                 if result:
                     overall_result.results.append(
                         Datasets(
                             dataset_name=name,
                             outcasts=result
-
                         )
                     )
     
         if len(overall_result.results) > 0:
+            logger.info(f'Model: {model_name}')
+            logger.info(f'\tNumber of subtasks with discrepancy: {len(overall_result.results)}')
+
+            wrong_answers: int = 0
+            for dataset in overall_result.results:
+                wrong_answers += len(dataset.outcasts)
+            
+            logger.info(f'\tNumber of wrong answers: {len(overall_result.results)}')
+
             save_to = '/'.join(model_result_path.split('/')[:-1])
             filename = f'{save_to}/{model_name}-results.json'
 
@@ -122,4 +145,4 @@ class ResultsChecker:
 
             return f'Check results saved to: {filename}'
         else:
-            return ''
+            return f'No discrepancies found for {model_name}!'
