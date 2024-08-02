@@ -13,7 +13,8 @@ add_to_catalog(
             "The task, the model's response chosen from the options list, and the golden response are as follows:\n",
         input_format="Task: {question}\n\n"
         "Model's Response: {answer}\n\n"
-        "Golden Response: {reference_answer}\n\n",
+        "Golden Response: {reference_answer}\n\n"
+        "Your Response:",
         output_format="[[{rating}]]",
         postprocessors=[
             r"processors.extract_mt_bench_rating_judgment",

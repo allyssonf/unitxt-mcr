@@ -85,7 +85,7 @@ class Mmlu(Evaluation):
             prediction_file = f'mmlu_{sub}.pkl'
             result_file = f'mmlu_{sub}.json'
 
-            if not self.result_file_exists(result_file):
+            if not self.result_file_exists(result_file) or self.overwrite_results:
                 evaluation = f"card=cards.mmlu.{sub}"
                 evaluation += f", template_card_index=0, metrics=[{os.getenv('EVAL_METRICS')}]"
 

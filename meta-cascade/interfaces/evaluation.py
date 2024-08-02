@@ -16,6 +16,7 @@ class Evaluation(ABC):
     max_tokens: int = 32
     max_instances: int | None = None
     watsonx_model: bool = False
+    overwrite_results: bool = False
     results_folder: str = "results"
     predictions_folder: str = "predictions"
 
@@ -38,6 +39,7 @@ class Evaluation(ABC):
             raise Exception("Invalid model name! (e.g. ibm/granite-13b-chat-v2)")
 
         self.watsonx_model = args.watsonx_model
+        self.overwrite_results = args.overwrite
 
         create_path(self.model_label)
 

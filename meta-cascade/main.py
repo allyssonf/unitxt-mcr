@@ -43,14 +43,14 @@ def main(args):
         )
 
         evaluation_result: Result = Result.success
-        result_path = new_evaluation.get_results_path()
+        result_path = f'{os.getenv("EVAL_HOME")}/{new_evaluation.get_results_path()}'
         evaluation_message: str = f'Results saved to: {result_path}\n'
 
         try:
             # Exceptions might arise while processing model's evaluation
             new_evaluation.evaluate()
             results_checker: ResultsChecker = ResultsChecker()
-            evaluation_message += results_checker.check_results(model_name, result_path)
+            evaluation_message += results_checker.check_results(result_path)
 
         except Exception as error:
             logger.info(error)
@@ -89,6 +89,12 @@ if __name__ == "__main__":
                         required = False,
                         default=False,
                         help = "Indicates if it is a model hosted at WatsonX.ai.")
+
+    parser.add_argument("--overwrite",
+                        type = bool,
+                        required = False,
+                        default=False,
+                        help = "Run evaluation again (using predicitions files if any) and save results.")
 
     args = parser.parse_args()
 

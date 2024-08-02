@@ -6,9 +6,9 @@ from typing import Any
 
 
 class GlobalScore(BaseModel):
-    accuracy: float
-    accuracy_ci_high: float
-    accuracy_ci_low: float
+    accuracy: float | None = None
+    accuracy_ci_high: float | None = None
+    accuracy_ci_low: float | None = None
     llama_3_70b_instruct_parser: float = \
         Field(alias='llama_3_70b_instruct_ibm_genai_template_mixeval_multi_choice_parser')
     llama_3_70b_instruct_parser_ci_high: float = \
@@ -22,7 +22,7 @@ class GlobalScore(BaseModel):
 
 
 class InstanceScore(BaseModel):
-    accuracy: float
+    accuracy: float | None = None
     judge_raw_input: str
     judge_raw_output: str
     llama_3_70b_instruct_parser: float = \
@@ -38,7 +38,8 @@ class Score(BaseModel):
 
 class OutCast(BaseModel):
     model_config = ConfigDict(protected_namespaces=())
-    accuracy: float
+    accuracy: float | None = None
+    judge_is_right: bool = False
     llmaj: float
     reference: str
     model_answer: str
@@ -69,7 +70,7 @@ class ResultsChecker:
     def __init__(self) -> None:
         pass
 
-    def __calculate_outcasts(self, data: Any) -> list[OutCast] | None:
+    def __calculate_outcasts(self, data: Any, global_score_only: bool = False) -> list[OutCast] | None:
         outcasts: list[OutCast] = []
 
         discrepancy: bool = False
@@ -79,11 +80,19 @@ class ResultsChecker:
                 **data[0]['score']
             )
 
-            discrepancy = value.global_.accuracy != value.global_.llama_3_70b_instruct_parser
+            score_value = 0
+            if value.global_.accuracy is not None:
+                discrepancy = value.global_.accuracy != value.global_.llama_3_70b_instruct_parser
+                score_value = value.global_.accuracy
+            else:
+                discrepancy = True # Just save judges result as there is no way to compare
 
             if discrepancy:
-                print(f'values: GA -> {value.global_.accuracy} | GJ -> {value.global_.llama_3_70b_instruct_parser}')
+                print(f'\tAccuracy -> {format(score_value, '.4f')} | {format(value.global_.llama_3_70b_instruct_parser, '.4f')} < - LLMaJ')
         else:
+            return None
+
+        if global_score_only:
             return None
 
         if discrepancy:
@@ -93,9 +102,17 @@ class ResultsChecker:
                 )
 
                 if value.instance.accuracy != value.instance.llama_3_70b_instruct_parser:
-                    print(f'scores: IA -> {value.instance.accuracy} | IJ -> {value.instance.llama_3_70b_instruct_parser}')
+                    hard_check = instance['processed_prediction'] == instance['processed_references'][0]
+                    judge_is_right = False
+
+                    if hard_check and value.instance.llama_3_70b_instruct_parser == 1.0:
+                        judge_is_right = True
+                    elif hard_check == False and value.instance.llama_3_70b_instruct_parser == 0.0:
+                        judge_is_right = True
+
                     outcasts.append(
                         OutCast(
+                            judge_is_right=judge_is_right,
                             accuracy=value.instance.accuracy,
                             llmaj=value.instance.llama_3_70b_instruct_parser,
                             reference=instance['processed_references'][0],
@@ -126,7 +143,7 @@ class ResultsChecker:
             for name in files:
                 json_file = open(os.path.join(path, name))
                 data = json.load(json_file)
-                print(f'Looking for discrepancies in {name}')
+                print(f'Discrepancies in {name}')
                 result = self.__calculate_outcasts(data)
 
                 if result:
@@ -178,5 +195,5 @@ models_list = [
 ]
 
 for model in models_list:
-    results_path = '<PATH_TO_RESULTS_HERE>'
+    results_path = f'/data/home/allysson/Data/0_NEW/1_mmlu_llmaj_no_accuracy/{model}/results'
     results_checker.check_results(results_path, save_json=True)

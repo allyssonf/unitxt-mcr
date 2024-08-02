@@ -41,6 +41,7 @@ class Score(BaseModel):
 
 class OutCast(BaseModel):
     model_config = ConfigDict(protected_namespaces=())
+    instance_index: int
     accuracy: float
     llmaj: float
     reference: str
@@ -51,6 +52,7 @@ class OutCast(BaseModel):
 
 class Datasets(BaseModel):
     dataset_name: str
+    discrepancies: int
     outcasts: list[OutCast]
 
 
@@ -79,7 +81,7 @@ class ResultsChecker:
             return None
 
         if discrepancy:
-            for instance in data:
+            for index, instance in enumerate(data):
                 value: Score = Score(
                     **instance['score']
                 )
@@ -87,6 +89,7 @@ class ResultsChecker:
                 if value.instance.accuracy != value.instance.llama_3_70b_instruct_parser:
                     outcasts.append(
                         OutCast(
+                            instance_index=index,
                             accuracy=value.instance.accuracy,
                             llmaj=value.instance.llama_3_70b_instruct_parser,
                             reference=instance['processed_references'][0],
@@ -98,20 +101,25 @@ class ResultsChecker:
 
         return outcasts if len(outcasts) > 0 else None
 
-    def check_results(self, model_name: str, results_folder_path: str) -> str:
+    def check_results(self, results_folder_path: str) -> str:
         logger.info('Running LLMaJ results check.')
 
         overall_result: Results = Results(
-            model_name=model_name,
+            model_name='',
             results=[]
         )
 
         model_result_path = ""
+        model_name = ""
 
         for path, _, files in os.walk(results_folder_path):
             # Path structure should be in this format:
             # /path/to/model-name/results
             model_result_path = str(path)
+            model_name = model_result_path.split('/')[-2]
+
+            if len(overall_result.model_name) == 0:
+                overall_result.model_name = model_name
 
             for name in files:
                 json_file = open(os.path.join(path, name))
@@ -122,6 +130,7 @@ class ResultsChecker:
                     overall_result.results.append(
                         Datasets(
                             dataset_name=name,
+                            discrepancies=len(result),
                             outcasts=result
                         )
                     )

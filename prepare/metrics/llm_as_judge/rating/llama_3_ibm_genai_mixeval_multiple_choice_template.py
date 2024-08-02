@@ -10,7 +10,7 @@ format = "formats.llama3_instruct"
 template = "templates.response_assessment.rating.mixeval_multi_choice_parser"
 
 inference_model = IbmGenAiInferenceEngine(
-    model_name=model, max_new_tokens=252, random_seed=get_seed()
+    model_name=model, max_new_tokens=252, random_seed=get_seed(), decoding_method='greedy'
 )
 model_label = model.split("/")[1].replace("-", "_").replace(".", ",").lower()
 model_label = f"{model_label}_ibm_genai"
