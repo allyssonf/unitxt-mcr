@@ -30,7 +30,11 @@ def main(args):
 
         airtable_logger = AirTableLogger()
 
-        airtable_logger.log_start(model_name, new_evaluation.get_evaluation_name())
+        airtable_logger.log_start(
+            args.run_name,
+            model_name, 
+            new_evaluation.get_evaluation_name()
+        )
 
         pretty_name = new_evaluation.get_pretty_name()
 
@@ -73,6 +77,11 @@ if __name__ == "__main__":
                         type = str,
                         required = True,
                         help = "Model names separated by comma. e.g. model1, model2, modeln")
+    
+    parser.add_argument("--run_name",
+                        type = str,
+                        required = True,
+                        help = "Evaluation run name. (e.g. to classify this run in logs)")
 
     parser.add_argument("--max_tokens",
                         type = int,

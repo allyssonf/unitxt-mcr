@@ -29,6 +29,7 @@ class Models(Model):
 class DGLogs(Model):
     model = F.LinkField('Model', Models)
     dataset = F.LinkField('Dataset', Datasets)
+    run_name = F.TextField('Run')
     status = F.SelectField('Status')
     start = F.TextField('Start')
     end = F.TextField('End')
@@ -61,7 +62,7 @@ class AirTableLogger:
                 return evldtst
         return None
 
-    def log_start(self, model_name: str, dataset_name: str) -> None:
+    def log_start(self, run_name: str, model_name: str, dataset_name: str) -> None:
         self.start = time.perf_counter()
 
         eval_model = self.get_eval_model(model_name)
@@ -76,6 +77,7 @@ class AirTableLogger:
         new_log = DGLogs(
             model = [eval_model],
             dataset = [eval_dataset],
+            run_name = run_name,
             status = Result.started.value,
             start = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
             end = '',
