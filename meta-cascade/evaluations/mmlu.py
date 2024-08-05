@@ -87,7 +87,8 @@ class Mmlu(Evaluation):
 
             if not self.result_file_exists(result_file) or self.overwrite_results:
                 evaluation = f"card=cards.mmlu.{sub}"
-                evaluation += f", template_card_index=0, metrics=[{os.getenv('EVAL_METRICS')}]"
+                # evaluation += f", template_card_index=0, metrics=[{os.getenv('EVAL_METRICS')}]"
+                evaluation += f", template=templates.qa.multiple_choice.with_topic.fm_eval_no_postprocessor, metrics=[{os.getenv('EVAL_METRICS')}]"
 
                 if self.max_instances:
                     evaluation += f", max_test_instances={self.max_instances}"

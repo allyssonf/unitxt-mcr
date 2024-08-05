@@ -1,6 +1,7 @@
 import os
 import time
 import datetime
+import socket
 
 from enum import Enum
 from pyairtable.orm import Model, fields as F
@@ -30,6 +31,7 @@ class DGLogs(Model):
     model = F.LinkField('Model', Models)
     dataset = F.LinkField('Dataset', Datasets)
     run_name = F.TextField('Run')
+    host = F.TextField('Host')
     status = F.SelectField('Status')
     start = F.TextField('Start')
     end = F.TextField('End')
@@ -78,6 +80,7 @@ class AirTableLogger:
             model = [eval_model],
             dataset = [eval_dataset],
             run_name = run_name,
+            host = socket.gethostname(),
             status = Result.started.value,
             start = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
             end = '',

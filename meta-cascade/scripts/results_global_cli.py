@@ -1,8 +1,8 @@
 import json
 import os
 from pydantic import BaseModel, Field, ConfigDict
-import numpy as np
 # from utils.files import handle_non_serializable
+import numpy as np
 from typing import Any
 
 
@@ -40,7 +40,7 @@ class Score(BaseModel):
 class OutCast(BaseModel):
     model_config = ConfigDict(protected_namespaces=())
     accuracy: float | None = None
-    judge_is_right: bool = False
+    hallucinated: bool = False
     llmaj: float
     reference: str
     model_answer: str
@@ -59,14 +59,6 @@ class Results(BaseModel):
     model_name: str
     results: list[Datasets]
 
-class Subtask(BaseModel):
-    name: str
-    accuracy: float
-    llmaj: float
-
-class Accuracies(BaseModel):
-    subtasks: list[Subtask]
-
 def handle_non_serializable(o):
     if isinstance(o, np.int64) or isinstance(o, np.int32):
         return int(o)
@@ -78,67 +70,12 @@ def handle_non_serializable(o):
 class ResultsChecker:
     def __init__(self) -> None:
         pass
-    
-    def calculate_accuracies(self, results_folder_path: str) -> Accuracies | None:
-        model_name = ""
-        result: Accuracies = Accuracies(
-            subtasks=[]
-        )
 
-        for path, _, files in os.walk(results_folder_path):
-            # Path structure should be in this format:
-            # /path/to/model-name/results
-            model_name = str(path).split('/')[-2]
-
-            print(model_name)
-
-            for name in sorted(files):
-                json_file = open(os.path.join(path, name))
-                data = json.load(json_file)
-
-                subtask_name = name.split('.')[0]
-
-                if len(data) > 0:
-                    value: Score = Score(
-                        **data[0]['score']
-                    )
-
-                    score_value: float = 0.0
-
-                    if value.global_.accuracy is not None:
-                        score_value = value.global_.accuracy
-                    else:
-                        calculated_accuracy: list[float] = []
-                        for instance in data:
-                            instance_accuracy: float = 0.0
-
-                            if instance['processed_prediction'][0].lower() in ['a', 'b', 'c', 'd'] and \
-                                instance['processed_references'][0].lower() == instance['processed_prediction'][0].lower():
-                                # Checked if first letter of  processed_prediction matched the reference
-                                instance_accuracy = 1.0
-
-                            calculated_accuracy.append(instance_accuracy)
-
-                        from sklearn.metrics import accuracy_score
-
-                        expected = [1.0] * len(calculated_accuracy)
-                        score_value = accuracy_score(expected, calculated_accuracy)
-
-                    if score_value != value.global_.llama_3_70b_instruct_parser:
-                        result.subtasks.append(
-                            Subtask(
-                                name=subtask_name,
-                                accuracy=score_value,
-                                llmaj=value.global_.llama_3_70b_instruct_parser
-                            )
-                        )
-
-        return result
-
-    def __calculate_outcasts(self, data: Any, global_score_only: bool = False) -> list[OutCast] | None:
+    def __calculate_outcasts(self, data: Any, save_anyway: bool = False) -> list[OutCast] | None:
         outcasts: list[OutCast] = []
 
         discrepancy: bool = False
+        missing_accuracy: bool = False
 
         if len(data) > 0:
             value: Score = Score(
@@ -146,19 +83,16 @@ class ResultsChecker:
             )
 
             score_value = 0
-
             if value.global_.accuracy is not None:
                 discrepancy = value.global_.accuracy != value.global_.llama_3_70b_instruct_parser
                 score_value = value.global_.accuracy
             else:
                 discrepancy = True # Just save judges result as there is no way to compare
+                missing_accuracy = True
 
-            if discrepancy:
+            if discrepancy and not missing_accuracy:
                 print(f'\tAccuracy -> {format(score_value, '.4f')} | {format(value.global_.llama_3_70b_instruct_parser, '.4f')} < - LLMaJ')
         else:
-            return None
-
-        if global_score_only:
             return None
 
         if discrepancy:
@@ -167,19 +101,23 @@ class ResultsChecker:
                     **instance['score']
                 )
 
-                if value.instance.accuracy != value.instance.llama_3_70b_instruct_parser:
-                    hard_check = instance['processed_prediction'] == instance['processed_references'][0]
-                    judge_is_right = False
+                hard_check: float = 0.0
+                hallucination = False
 
-                    if hard_check and value.instance.llama_3_70b_instruct_parser == 1.0:
-                        judge_is_right = True
-                    elif hard_check == False and value.instance.llama_3_70b_instruct_parser == 0.0:
-                        judge_is_right = True
+                if instance['processed_prediction'][0].lower() not in ['a', 'b', 'c', 'd']:
+                    hallucination = True
+                elif instance['processed_references'][0].lower() == instance['processed_prediction'][0].lower():
+                    # Checked if first letter of  processed_prediction matched the reference
+                    hard_check = 1.0
 
+
+                instance_accuracy = hard_check if missing_accuracy else value.instance.accuracy
+
+                if save_anyway or instance_accuracy != value.instance.llama_3_70b_instruct_parser or hallucination:
                     outcasts.append(
                         OutCast(
-                            judge_is_right=judge_is_right,
-                            accuracy=value.instance.accuracy,
+                            accuracy=instance_accuracy,
+                            hallucinated=hallucination,
                             llmaj=value.instance.llama_3_70b_instruct_parser,
                             reference=instance['processed_references'][0],
                             jugde_prompt=value.instance.judge_raw_input,
@@ -206,7 +144,7 @@ class ResultsChecker:
             model_name = model_result_path.split('/')[-2]
             overall_result.model_name = model_name
 
-            for name in sorted(files):
+            for name in files:
                 json_file = open(os.path.join(path, name))
                 data = json.load(json_file)
                 print(f'Discrepancies in {name}')
@@ -228,17 +166,45 @@ class ResultsChecker:
             wrong_answers: int = 0
             for dataset in overall_result.results:
                 wrong_answers += len(dataset.outcasts)
-            
-            print(f'\tNumber of wrong answers: {len(overall_result.results)}')
 
             save_to = '/'.join(model_result_path.split('/')[:-1])
-            filename = f'{save_to}/{model_name}-results.json'
+            filename = f'{save_to}/{model_name}-results'
 
             if save_json:
-                with open(filename, "w") as outfile: 
-                    serializable_data = json.dumps(overall_result.model_dump(), default=handle_non_serializable)
-                    outfile.write(serializable_data)
+                for result in overall_result.results:
+                    with open(f'{filename}-{result.dataset_name}', "w") as outfile:
+                        serializable_data = json.dumps(result.model_dump(), default=handle_non_serializable)
+                        outfile.write(serializable_data)
+                outfile.close()
+
+            # if save_json:
+            #     with open(filename, "w") as outfile:
+            #         serializable_data = json.dumps(overall_result.model_dump(), default=handle_non_serializable)
+            #         outfile.write(serializable_data)
+            #     outfile.close()
 
             return f'Check results saved to: {filename}'
         else:
             return f'No discrepancies found for {model_name}!'
+
+
+results_checker: ResultsChecker = ResultsChecker()
+
+# models_list = [
+#     'granite_13b_chat_v2',
+#     'granite_34b_code_instruct',
+#     'llama_3_405b_instruct',
+#     'llama_3_70b_instruct',
+#     'llama_3_8b_instruct',
+#     'mistral_large',
+#     'mixtral_8x7b_instruct_v01'
+# ]
+
+models_list = [
+    # 'granite_34b_code_instruct'
+    'granite_13b_chat_v2'
+]
+
+for model in models_list:
+    results_path = f'/data/home/allysson/EVAL_DATA/Tests/postprocessor/{model}/results'
+    print(results_checker.check_results(results_path, save_json=True))

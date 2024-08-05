@@ -53,9 +53,13 @@ def main(args):
         try:
             # Exceptions might arise while processing model's evaluation
             new_evaluation.evaluate()
-            results_checker: ResultsChecker = ResultsChecker()
-            evaluation_message += results_checker.check_results(result_path)
 
+            try:
+                results_checker: ResultsChecker = ResultsChecker()
+                evaluation_message += results_checker.check_results(result_path)
+            except Exception as checker_error:
+                logger.info(checker_error)
+                evaluation_message += 'Failed to check results.'
         except Exception as error:
             logger.info(error)
             logger.info(f'Error evaluating model {new_evaluation.get_pretty_name()}')

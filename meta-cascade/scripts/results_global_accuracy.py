@@ -1,7 +1,6 @@
 import json
 import os
 from pydantic import BaseModel, Field, ConfigDict
-import numpy as np
 # from utils.files import handle_non_serializable
 from typing import Any
 
@@ -59,14 +58,6 @@ class Results(BaseModel):
     model_name: str
     results: list[Datasets]
 
-class Subtask(BaseModel):
-    name: str
-    accuracy: float
-    llmaj: float
-
-class Accuracies(BaseModel):
-    subtasks: list[Subtask]
-
 def handle_non_serializable(o):
     if isinstance(o, np.int64) or isinstance(o, np.int32):
         return int(o)
@@ -78,62 +69,6 @@ def handle_non_serializable(o):
 class ResultsChecker:
     def __init__(self) -> None:
         pass
-    
-    def calculate_accuracies(self, results_folder_path: str) -> Accuracies | None:
-        model_name = ""
-        result: Accuracies = Accuracies(
-            subtasks=[]
-        )
-
-        for path, _, files in os.walk(results_folder_path):
-            # Path structure should be in this format:
-            # /path/to/model-name/results
-            model_name = str(path).split('/')[-2]
-
-            print(model_name)
-
-            for name in sorted(files):
-                json_file = open(os.path.join(path, name))
-                data = json.load(json_file)
-
-                subtask_name = name.split('.')[0]
-
-                if len(data) > 0:
-                    value: Score = Score(
-                        **data[0]['score']
-                    )
-
-                    score_value: float = 0.0
-
-                    if value.global_.accuracy is not None:
-                        score_value = value.global_.accuracy
-                    else:
-                        calculated_accuracy: list[float] = []
-                        for instance in data:
-                            instance_accuracy: float = 0.0
-
-                            if instance['processed_prediction'][0].lower() in ['a', 'b', 'c', 'd'] and \
-                                instance['processed_references'][0].lower() == instance['processed_prediction'][0].lower():
-                                # Checked if first letter of  processed_prediction matched the reference
-                                instance_accuracy = 1.0
-
-                            calculated_accuracy.append(instance_accuracy)
-
-                        from sklearn.metrics import accuracy_score
-
-                        expected = [1.0] * len(calculated_accuracy)
-                        score_value = accuracy_score(expected, calculated_accuracy)
-
-                    if score_value != value.global_.llama_3_70b_instruct_parser:
-                        result.subtasks.append(
-                            Subtask(
-                                name=subtask_name,
-                                accuracy=score_value,
-                                llmaj=value.global_.llama_3_70b_instruct_parser
-                            )
-                        )
-
-        return result
 
     def __calculate_outcasts(self, data: Any, global_score_only: bool = False) -> list[OutCast] | None:
         outcasts: list[OutCast] = []
@@ -146,7 +81,6 @@ class ResultsChecker:
             )
 
             score_value = 0
-
             if value.global_.accuracy is not None:
                 discrepancy = value.global_.accuracy != value.global_.llama_3_70b_instruct_parser
                 score_value = value.global_.accuracy
@@ -190,6 +124,45 @@ class ResultsChecker:
 
         return outcasts if len(outcasts) > 0 else None
 
+    def calculate_accuracy(self, results_folder_path: str):
+        overall_result: Results = Results(
+            model_name='',
+            results=[]
+        )
+
+        model_result_path = ""
+        model_name = ""
+
+        for path, _, files in os.walk(results_folder_path):
+            # Path structure should be in this format:
+            # /path/to/model-name/results
+            model_result_path = str(path)
+            model_name = model_result_path.split('/')[-2]
+            overall_result.model_name = model_name
+
+            predictions: list[bool] = []
+            llmaj_score: float = 0.0
+
+            for name in files:
+                json_file = open(os.path.join(path, name))
+                data = json.load(json_file)
+                print(f'Accuracies of {name}')
+
+                for instance in data:
+                    value: Score = Score(
+                        **instance['score']
+                    )
+
+                    llmaj_score = value.global_.llama_3_70b_instruct_parser
+                    result = instance['processed_references'][0].lower() == instance['processed_prediction'][0].lower()
+                    predictions.append(1.0 if result else 0.0)
+
+                from sklearn.metrics import accuracy_score
+
+                expected = [1.0] * len(predictions)
+                accuracy = accuracy_score(expected, predictions)
+                print(f"\tAccuracy -> {accuracy} | {llmaj_score} <- LLMaJ")
+
     def check_results(self, results_folder_path: str, save_json: bool = False) -> str:
         overall_result: Results = Results(
             model_name='',
@@ -206,7 +179,7 @@ class ResultsChecker:
             model_name = model_result_path.split('/')[-2]
             overall_result.model_name = model_name
 
-            for name in sorted(files):
+            for name in files:
                 json_file = open(os.path.join(path, name))
                 data = json.load(json_file)
                 print(f'Discrepancies in {name}')
@@ -242,3 +215,25 @@ class ResultsChecker:
             return f'Check results saved to: {filename}'
         else:
             return f'No discrepancies found for {model_name}!'
+
+
+results_checker: ResultsChecker = ResultsChecker()
+
+# models_list = [
+#     'granite_13b_chat_v2',
+#     'granite_34b_code_instruct',
+#     'llama_3_405b_instruct',
+#     'llama_3_70b_instruct',
+#     'llama_3_8b_instruct',
+#     'mistral_large',
+#     'mixtral_8x7b_instruct_v01'
+# ]
+
+models_list = [
+    'granite_34b_code_instruct'
+]
+
+for model in models_list:
+    results_path = f'/data/home/allysson/EVAL_DATA/Tests/postprocessor/{model}/results'
+    # results_checker.check_results(results_path, save_json=True)
+    results_checker.calculate_accuracy(results_path)

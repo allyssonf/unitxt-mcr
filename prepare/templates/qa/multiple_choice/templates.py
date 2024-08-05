@@ -174,6 +174,7 @@ add_to_catalog(
     overwrite=True,
 )
 
+
 input_format = "The following are multiple choice questions (with answers) about {topic}.\n{context}\n{question}\nAnswers:\n{choices}\nAnswer:"
 add_to_catalog(
     MultipleChoiceTemplate(
@@ -324,6 +325,17 @@ add_to_catalog(
         postprocessors=["processors.first_character"],
     ),
     "templates.qa.multiple_choice.with_topic.fm_eval",
+    overwrite=True,
+)
+
+input_format = "The following are multiple choice questions (with answers) about {topic}.\n\nQuestion: {question}\nChoose from {numerals}\nAnswers:\n{choices}\nAnswer:"
+add_to_catalog(
+    MultipleChoiceTemplate(
+        input_format=input_format,
+        target_field="answer",
+        choices_separator="\n"
+    ),
+    "templates.qa.multiple_choice.with_topic.fm_eval_no_postprocessor",
     overwrite=True,
 )
 
