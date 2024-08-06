@@ -10,12 +10,14 @@ from utils.files import save_json_file, save_pickle, create_path, file_exists
 
 logger = logging.getLogger(__name__)
 
+
 class Evaluation(ABC):
     model_name: str = ""
     model_label: str = ""
     max_tokens: int = 32
     max_instances: int | None = None
     watsonx_model: bool = False
+    bam_model: bool = False
     overwrite_results: bool = False
     results_folder: str = "results"
     predictions_folder: str = "predictions"
@@ -39,12 +41,13 @@ class Evaluation(ABC):
             raise Exception("Invalid model name! (e.g. ibm/granite-13b-chat-v2)")
 
         self.watsonx_model = args.watsonx_model
+        self.bam_model = args.bam_model
         self.overwrite_results = args.overwrite
 
         create_path(self.model_label)
 
-    def get_model_parameters(self) -> tuple[str, int, bool]:
-        return self.model_name, self.max_tokens, self.watsonx_model
+    def get_model_parameters(self) -> tuple[str, int, bool, bool]:
+        return self.model_name, self.max_tokens, self.watsonx_model, self.bam_model
 
     @abstractmethod
     def get_evaluation_name(self) -> str:
@@ -118,6 +121,6 @@ class Evaluation(ABC):
         if not start_time:
             logger.info(f"[END] {type(self).__name__}: {time.perf_counter()}")
         else:
-            execution_time=str(datetime.timedelta(seconds=time.perf_counter()-start_time))
+            execution_time = str(datetime.timedelta(seconds=time.perf_counter()-start_time))
 
             logger.info("[EXECUTION] time: {}".format(execution_time))

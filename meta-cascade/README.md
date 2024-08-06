@@ -20,6 +20,10 @@ In unitxt-mcr root folder, run the following commands
 
 > pip install python-dotenv
 
+> pip install ibm-watsonx-ai
+
+> pip install pyairtable
+
 ### For some microsoft models:
 > pip install flash-attn --no-build-isolation
 
@@ -28,7 +32,7 @@ In unitxt-mcr root folder, run the following commands
 Please set `EVAL_HOME` environment variable to the folder where results will be saved
 
 ```text
-📦data
+📦granite_13b_chat_v2
  ┣ 📂predictions
  ┃ ┗ 📜pred_mmlu_abstract_algebra.pkl
  ┣ 📂results

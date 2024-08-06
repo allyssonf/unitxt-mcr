@@ -102,6 +102,12 @@ if __name__ == "__main__":
                         required = False,
                         default=False,
                         help = "Indicates if it is a model hosted at WatsonX.ai.")
+    
+    parser.add_argument("--bam_model",
+                        type = bool,
+                        required = False,
+                        default=False,
+                        help = "Indicates if it is a model hosted at IBM Research BAM.")
 
     parser.add_argument("--overwrite",
                         type = bool,

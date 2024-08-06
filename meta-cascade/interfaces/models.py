@@ -1,11 +1,12 @@
 import gc
 import torch
 
-from unitxt.inference import HFPipelineBasedInferenceEngine, IbmGenAiInferenceEngine
+from unitxt.inference import HFPipelineBasedInferenceEngine, IbmGenAiInferenceEngine, WMLInferenceEngine
+
 
 class ModelLoader():
     _instance: None = None
-    inference_model: HFPipelineBasedInferenceEngine | IbmGenAiInferenceEngine | None = None
+    inference_model: HFPipelineBasedInferenceEngine | IbmGenAiInferenceEngine | WMLInferenceEngine | None = None
 
     def __new__(cls):
         if cls._instance is None:
@@ -13,14 +14,18 @@ class ModelLoader():
 
         return cls._instance
 
-    def get_inference_model(self, model_name: str, watsonx: bool, max_tokens: int = 32) -> HFPipelineBasedInferenceEngine | IbmGenAiInferenceEngine:
+    def get_inference_model(self, model_name: str, wxai_model: bool = False, bam_model: bool = False, max_tokens: int = 32) -> HFPipelineBasedInferenceEngine | IbmGenAiInferenceEngine | WMLInferenceEngine:
         if self.inference_model is None:
-            if not watsonx:
-                self.inference_model = HFPipelineBasedInferenceEngine(
+            if wxai_model:
+                self.inference_model = WMLInferenceEngine(
+                    model_name=model_name, max_new_tokens=max_tokens
+                )
+            elif bam_model:
+                self.inference_model = IbmGenAiInferenceEngine(
                     model_name=model_name, max_new_tokens=max_tokens
                 )
             else:
-                self.inference_model = IbmGenAiInferenceEngine(
+                self.inference_model = HFPipelineBasedInferenceEngine(
                     model_name=model_name, max_new_tokens=max_tokens
                 )
 

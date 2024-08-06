@@ -10,6 +10,7 @@ from unitxt.api import evaluate, load_dataset
 
 logger = logging.getLogger(__name__)
 
+
 class Mmlu(Evaluation):
     def __init__(self, model_name, args):
         super().__init__(model_name, args)
@@ -78,7 +79,7 @@ class Mmlu(Evaluation):
             "world_religions",
         ]
 
-        model_loader = ModelLoader()
+        model_loader: ModelLoader = ModelLoader()
 
         for sub in subtasks:
             start_time = self.time_start()
@@ -102,19 +103,21 @@ class Mmlu(Evaluation):
 
                 test_dataset = dataset["test"]
 
-                name, tokens, watsonx = self.get_model_parameters()
+                name, tokens, watsonx, bam = self.get_model_parameters()
 
-                inference_model = model_loader.get_inference_model(model_name=name, watsonx=watsonx, max_tokens=tokens)
+                inference_model = model_loader.get_inference_model(
+                    model_name=name, wxai_model=watsonx, bam_model=bam, max_tokens=tokens
+                )
 
                 predictions = []
 
                 if not self.prediction_file_exists(prediction_file):
                     predictions = inference_model.infer(test_dataset)
+
+                    self.save_predictions(prediction_file, predictions)
                 else:
                     logger.info(f'Loading predictions from file: {prediction_file}')
                     predictions = self.load_predictions(prediction_file)
-
-                self.save_predictions(prediction_file, predictions)
 
                 evaluated_dataset = evaluate(predictions=predictions, data=test_dataset)
 

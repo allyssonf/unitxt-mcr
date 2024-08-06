@@ -4,9 +4,11 @@ from pydantic import BaseModel, Field, ConfigDict
 import numpy as np
 from typing import Any
 
+
 class ExtendedBaseModel(BaseModel):
     model_config = ConfigDict(extra="allow")
     model_config["protected_namespaces"] = ()
+
 
 class GlobalScore(ExtendedBaseModel):
     accuracy: float | None = None
@@ -59,13 +61,16 @@ class Results(ExtendedBaseModel):
     model_name: str
     results: list[Datasets]
 
+
 class Subtask(ExtendedBaseModel):
     name: str
     accuracy: float
     llmaj: float
 
+
 class Accuracies(ExtendedBaseModel):
     subtasks: list[Subtask]
+
 
 def handle_non_serializable(o):
     if isinstance(o, np.int64) or isinstance(o, np.int32):
@@ -74,6 +79,7 @@ def handle_non_serializable(o):
         return list(o)
     else:
         return str(o)
+
 
 class MetricsChecker:
     def __init__(self) -> None:
@@ -88,7 +94,6 @@ class MetricsChecker:
                 data = json.load(json_file)
                 json_file.close()
                 yield name, data
-
 
     def __get_model_accuracies(self, data: Any) -> tuple[float, float]:
         # Check if data has a global score for accuracy
@@ -130,7 +135,6 @@ class MetricsChecker:
 
         return accuracy_score_value, value.global_.llama_3_70b_instruct_parser
 
-
     def __get_instance_accuracies(self, instance: Any) -> tuple[float, float]:
         # Check if instance has a score for accuracy
         # i.e. 'metrics.accuracy' was added to the array
@@ -156,7 +160,6 @@ class MetricsChecker:
                 instance_accuracy = 1.0
 
         return instance_accuracy, value.instance.llama_3_70b_instruct_parser
-
 
     def __calculate_outcasts(self, data: Any) -> list[OutCast] | None:
         outcasts: list[OutCast] = []
@@ -192,7 +195,6 @@ class MetricsChecker:
                     )
 
         return outcasts if len(outcasts) > 0 else None
-
 
     def check_model_accuracies(self, results_folder_path: str) -> Accuracies | None:
         result: Accuracies = Accuracies(
