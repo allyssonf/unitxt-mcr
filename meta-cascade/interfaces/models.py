@@ -21,7 +21,7 @@ class ModelLoader():
                 )
             else:
                 self.inference_model = IbmGenAiInferenceEngine(
-                    model_name=model_name, max_new_tokens=32
+                    model_name=model_name, max_new_tokens=max_tokens
                 )
 
         return self.inference_model

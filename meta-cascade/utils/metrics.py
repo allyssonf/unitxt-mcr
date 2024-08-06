@@ -50,6 +50,7 @@ class OutCast(ExtendedBaseModel):
 
 class Datasets(ExtendedBaseModel):
     dataset_name: str
+    instances_number: int
     discrepancies_number: int
     outcasts: list[OutCast]
 
@@ -231,6 +232,7 @@ class MetricsChecker:
                 overall_result.results.append(
                     Datasets(
                         dataset_name=subtask_filename,
+                        instances_number=len(data),
                         discrepancies_number=len(result),
                         outcasts=result
                     )
